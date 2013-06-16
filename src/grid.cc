@@ -10,27 +10,29 @@ namespace ginf {
 		// Initially, the smoothness costs are all 0, therefore it can be
 		// considered as a Potts model with zero lambda
 		smModel = GINF_SM_POTTS;
+		
+		width = w; height = h; numLabels = n;
 	}
 
 	template <typename T>
 	Grid<T>::~Grid() {
-		delete dtCosts; dtCosts = NULL;
-		delete smCosts; smCosts = NULL;
+		delete dtCosts; dtCosts = 0;
+		delete smCosts; smCosts = 0;
 	}
 
 	template <typename T>
 	int Grid<T>::getWidth() {
-		return dtCosts->getSize(0);
+		return width;
 	}
 
 	template <typename T>
 	int Grid<T>::getHeight() {
-		return dtCosts->getSize(1);
+		return height;
 	}
 
 	template <typename T>
 	int Grid<T>::getNumLabels() {
-		return dtCosts->getSize(2);
+		return numLabels;
 	}
 
 	template <typename T>
@@ -144,7 +146,7 @@ namespace ginf {
 	}
 
 	template <typename T>
-	Matrix<T> *Grid<T>::getSmoothnessCosts() {
+	Matrix<T> *Grid<T>::getSmCosts() {
 		return smCosts;
 	}
 	

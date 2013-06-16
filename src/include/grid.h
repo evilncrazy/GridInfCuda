@@ -26,6 +26,8 @@ namespace ginf {
 		// This is useful if we want to implement optimizations that only work for
 		// particular smoothness functions.
 		SmoothnessFunctions smModel;
+		
+		int width, height, numLabels;
 	public:
 		// Constructor to create 2D grid of size (w, h), with n labels
 		Grid(int w, int h, int n);
@@ -75,7 +77,7 @@ namespace ginf {
 
 		// Returns the data and smoothness cost matrices
 		Matrix<T> *getDataCosts();
-		Matrix<T> *getSmoothnessCosts();
+		Matrix<T> *getSmCosts();
 	};
 }
 
