@@ -38,10 +38,10 @@ namespace ginf {
 		int getTotalSize();
 
 		// Return the value at a specific index
-		T at(int first, ...);
+		T at(int x, int y, int z = 0, int w = 0);
 
 		// Return a reference to the value at a specific index
-		T &get(int first, ...);
+		T& get(int x, int y, int z = 0, int w = 0);
 
 		// Copy all the data from a matrix of the same size
 		void copyFrom(Matrix<T> *m);
