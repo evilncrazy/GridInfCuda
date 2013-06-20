@@ -1,4 +1,5 @@
 #include "../include/icm.h"
+#include "../include/potentials.h"
 
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -7,17 +8,37 @@
 
 namespace ginf {
 	template <typename T>
+	__device__ T gpuIcmGetLabelingCost(GpuGrid<T> *grid, PairwisePot<T> pot, int4 labeling, int label) {
+		GINF_DECL_X; GINF_DECL_Y;
+		
+		return grid->getDataCost(x, y, label) +
+			pot(label, labeling.x) +
+			pot(label, labeling.y) +
+			pot(label, labeling.z) +
+			pot(label, labeling.w);
+	}
+	
+	template <typename T>
 	__global__ void gpuIcmDecodeKernel(GpuGrid<T> *grid, int *result, int *old) {
 		GINF_DECL_X; GINF_DECL_Y;
 		MatDim dim(grid->getWidth(), grid->getHeight());
-
-		if (dim.isValid(x, y)) {
-			// Find the minimum state
-			T minCost = grid->getLabelingCost(old, x, y, 0);
+		PairwisePot<T> pot(grid);
+		
+		if (dim.isValidStrict(x, y)) {
+			// Store the labels of neighbours in register memory
+			int4 labels = make_int4(
+				old[dim(x, y + 1)],
+				old[dim(x + 1, y)],
+				old[dim(x, y - 1)],
+				old[dim(x - 1, y)]
+			);
+			
+			// Find the label that gives the minimum energy
+			T minCost = gpuIcmGetLabelingCost(grid, pot, labels, 0);
 			int minLabel = 0;
 			
-			for (int i = 1; i < grid->getNumLabels(); i++) {
-				T cost = grid->getLabelingCost(old, x, y, i);
+			for (int i = 1; i < grid->getNumLabels(); i++) {		
+				T cost = gpuIcmGetLabelingCost(grid, pot, labels, i);
 				if (cost < minCost) {
 					minLabel = i;
 					minCost = cost;
