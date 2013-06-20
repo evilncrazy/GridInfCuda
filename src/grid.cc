@@ -131,10 +131,7 @@ namespace ginf {
 		// For each direction, we calculate the smoothness cost with that neighbour
 		T totalCost = getDataCost(x, y, label);
 		for (int d = 0; d < GINF_NUM_DIR; d++) {
-			int nx = x + dirX[d], ny = y + dirY[d];
-			if (GINF_IS_VALID_NODE(nx, ny, getWidth(), getHeight())) {
-				totalCost += getSmoothnessCost(label, f->at(nx, ny));
-			}
+			totalCost += getSmoothnessCost(label, f->at(x + dirX[d], y + dirY[d]));
 		}
 
 		return totalCost;
