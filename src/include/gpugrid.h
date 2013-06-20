@@ -8,53 +8,40 @@ namespace ginf {
 	template <typename T>
 	class GpuGrid {
 	public:
+// Declare this functions only when compiling with nvcc
+#ifdef __CUDACC__
 		int smModel; // The smoothness cost model
 		MatDim dimDt, dimSm; // Dimensions of cost matrices
 		T *dtCosts; // Data cost matrix
 		T *smCosts; // Smoothness cost matrix
 
-// Declare this functions only when compiling with nvcc
-#ifdef __CUDACC__
 		// Get width/height
 		__device__ int getWidth() {
-			return dimDt.x;	
+			return dimDt.dim.x;	
 		}
 
 		__device__ int getHeight() {
-			return dimDt.y;		
+			return dimDt.dim.y;		
 		}
 
 		// Get total number of nodes
 		__device__ int getNumNodes() {
-			return dimDt.x * dimDt.y;		
+			return getWidth() * getHeight();		
 		}
 
 		// Get number of labels
 		__device__ int getNumLabels() {
-			return dimDt.z;		
+			return dimDt.dim.z;		
 		}
 
 		// Get the cost of labeling (x, y) with label fp
 		__device__ T getDataCost(int x, int y, int fp) {
-			return dtCosts[dimDt.idx(x, y, fp)];
+			return dtCosts[dimDt(x, y, fp)];
 		}
 
 		// Get the smoothness cost V(fp, fq)
 		__device__ T getSmoothnessCost(int fp, int fq) {
-			return smCosts[dimSm.idx(fp, fq)];		
-		}
-
-		// Returns the cost of a labeling for a particular pixel
-		__device__ T getLabelingCost(int *f, int x, int y, int label) {
-			T totalCost = getDataCost(x, y, label);
-			for (int d = 0; d < GINF_NUM_DIR; d++) {
-				int nx = x + dDirX[d], ny = y + dDirY[d];
-				if (dimDt.isValid(nx, ny)) {
-					totalCost += getSmoothnessCost(label, (int)f[dimDt.idx(nx, ny)]);
-				}
-			}
-			
-			return totalCost;
+			return smCosts[dimSm(fp, fq)];
 		}
 #endif
 	};
