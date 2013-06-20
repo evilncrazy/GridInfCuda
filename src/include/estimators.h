@@ -10,12 +10,14 @@ namespace ginf {
 		for (int y = 0; y < grid->getHeight(); y++) {
 			for (int x = 0; x < grid->getWidth(); x++) {
 				int minLabel = 0;
+				
 				for (int i = 1; i < grid->getNumLabels(); i++) {
 					if (grid->getDataCost(x, y, i) < grid->getDataCost(x, y, minLabel)) {
-						result->get(x, y) = i;
 						minLabel = i;
 					}
 				}
+				
+				result->get(x, y) = minLabel;
 			}
 		}
 	}
