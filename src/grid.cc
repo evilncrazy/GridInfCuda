@@ -59,7 +59,7 @@ namespace ginf {
 	T Grid<T>::getSmoothnessCost(int fp, int fq) {
 		return smCosts->at(fp, fq);
 	}
-
+	
 	template <typename T>
 	void Grid<T>::setSmoothnessCost(int fp, int fq, T cost) {
 		smModel = GINF_SM_EXPLICIT;
@@ -110,16 +110,14 @@ namespace ginf {
 			for (int x = 1; x < w - 1; x++) {
 				// Count the data cost D
 				totalCost += getDataCost(x, y, f->at(x, y));
-
+				
 				// For its neighbours in the north and east direction, count the
 				// smoothness costs
-				if (GINF_IS_VALID_NODE(x + dirX[GINF_DIR_N], y + dirY[GINF_DIR_N], w, h)) {
-					totalCost += getSmoothnessCost(f->at(x, y), f->at(x + dirX[GINF_DIR_N], y + dirY[GINF_DIR_N]));
-				}
+				int nx = x + dirX[GINF_DIR_N], ny = y + dirY[GINF_DIR_N];
+				totalCost += getSmoothnessCost(f->at(x, y), f->at(nx, ny));
 
-				if (GINF_IS_VALID_NODE(x + dirX[GINF_DIR_E], y + dirY[GINF_DIR_E], w, h)) {
-					totalCost += getSmoothnessCost(f->at(x, y), f->at(x + dirX[GINF_DIR_E], y + dirY[GINF_DIR_E]));
-				}
+				int ex = x + dirX[GINF_DIR_E], ey = y + dirY[GINF_DIR_E];
+				totalCost += getSmoothnessCost(f->at(x, y), f->at(ex, ey));
 			}
 		}
 
