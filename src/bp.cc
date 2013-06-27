@@ -5,10 +5,10 @@
 namespace ginf {
 	// Sum up messages sent to a node by its neighbours
 	template <typename T>
-	void bpCollect(Grid<T> *grid, Matrix<T> *msgs, Matrix<T> *from, int x, int y) {
+	void bpCollect(Grid<T> *grid, Matrix<T> *msgs, Matrix<T> *from, Matrix<T> *dataCosts, int x, int y) {
 		// For each label
 		for (int i = 0; i < grid->getNumLabels(); i++) {
-			from->get(x, y, i) = 0;
+			from->get(x, y, i) = dataCosts->at(x, y, i);
 			
 			// For each neighbour, add up the messages for this particular label
 			for (int d = 0; d < GINF_NUM_DIR; d++) {
@@ -19,15 +19,15 @@ namespace ginf {
 
 	// Send a message in a particular direction
 	template <typename T>
-	void bpSendMsg(Grid<T> *grid, Matrix<T> *msgs, Matrix<T> *from, Matrix<T> *dataCosts, T *out, int x, int y, int d) {
+	void bpSendMsg(Grid<T> *grid, Matrix<T> *msgs, Matrix<T> *from, T *out, int x, int y, int d) {
 		// Get the coordinate of the neighbour
 		int nx = x + dirX[d], ny = y + dirY[d];
 
-		if (grid->getSmModel() == GINF_SM_TRUNC_LINEAR) {
+		if (grid->getSmModel() == GINF_SM_TRUNC_LINEAR || grid->getSmModel() == GINF_SM_POTTS) {
 			// We can apply an optimization to calculate the message in O(L), where L is the number of labels
-			T minh = out[0] = dataCosts->at(x, y, 0) + (from->at(x, y, 0) - msgs->at(nx, ny, GINF_OPP_DIR(d), 0));
+			T minh = out[0] = from->at(x, y, 0) - msgs->at(nx, ny, GINF_OPP_DIR(d), 0);
 			for (int i = 1; i < grid->getNumLabels(); i++) {
-				out[i] = dataCosts->at(x, y, i) + (from->at(x, y, i) - msgs->at(nx, ny, GINF_OPP_DIR(d), i));
+				out[i] = from->at(x, y, i) - msgs->at(nx, ny, GINF_OPP_DIR(d), i);
 				minh = GINF_MIN(minh, out[i]);
 			}
 
@@ -40,33 +40,39 @@ namespace ginf {
 				out[i] = GINF_MIN(out[i], out[i + 1] + scale);
 
 			// Truncate the messages using truncate constant
-			minh += GINF_MIN(grid->getSmoothnessCost(0, 1) * grid->getNumLabels(),
-				grid->getSmoothnessCost(0, grid->getNumLabels() - 1));
+			minh += grid->getSmoothnessCost(0, grid->getNumLabels() - 1);
 			T val = 0;
 			for (int i = 0; i < grid->getNumLabels(); i++) {
 				out[i] = GINF_MIN(out[i], minh);
 				val += out[i];
 			}
-		
+			
 			// Normalize
 			val /= grid->getNumLabels();
 			for (int i = 0; i < grid->getNumLabels(); i++) {
 				out[i] -= val;
 			}
+		} else {
+			for (int i = 0; i < grid->getNumLabels(); i++) {
+				out[i] = grid->getSmoothnessCost(i, 0) + from->at(x, y, 0);
+				for (int j = 0; j < grid->getNumLabels(); j++) {
+					out[i] = GINF_MIN(out[i], grid->getSmoothnessCost(i, j) + from->at(x, y, j));
+				}
+			}
 		}
 	}
 
 	template <typename T>   
-	int bpGetBelief(Grid<T> *grid, Matrix<T> *msgs, Matrix<T> *from, int x, int y) {
+	int bpGetBelief(Grid<T> *grid, Matrix<T> *msgs, Matrix<T> *from, Matrix<T> *data, int x, int y) {
 		// Collect msgs from neighbours
-		bpCollect(grid, msgs, from, x, y);
+		bpCollect(grid, msgs, data, from, x, y);
 	
 		// Pick the label that minimizes the cost
-		T minCost = grid->getDataCost(x, y, 0) + from->at(x, y, 0);
+		T minCost = from->at(x, y, 0);
 		int minLabel = 0;
 		
 		for (int i = 1; i < grid->getNumLabels(); i++) {
-			T cost = grid->getDataCost(x, y, i) + from->at(x, y, i);
+			T cost = from->at(x, y, i);
 			if (cost < minCost) {
 				minCost = cost;
 				minLabel = i;
@@ -89,7 +95,7 @@ namespace ginf {
 		// At the finest level, the data costs correspond to the original problem
 		data[0] = new Matrix<T>(3, grid->getWidth(), grid->getHeight(), grid->getNumLabels());
 		data[0]->copyFrom(grid->getDataCosts());
-	   
+	   	
 		// Calculate the data costs on the other levels
 		for (int t = 1; t < numLevels; t++) {
 			int w = (int)ceil(data[t - 1]->getSize(0) / 2.0),
@@ -143,11 +149,11 @@ namespace ginf {
 				for (int y = 1; y < h - 1; y++) {
 					for (int x = ((y + i) & 1) + 1; x < w - 1; x += 2) {
 						// Collect msgs from neighbours
-						bpCollect(grid, msgs[t], from[t], x, y);
+						bpCollect(grid, msgs[t], from[t], data[t], x, y);
 
 						// Foreach direction, send message
 						for (int d = 0; d < GINF_NUM_DIR; d++) {
-							bpSendMsg(grid, msgs[t], from[t], data[t], msgBuffer, x, y, d);
+							bpSendMsg(grid, msgs[t], from[t], msgBuffer, x, y, d);
 	
 							// Copy the msgBuffer into the msgs array
 							for (int j = 0; j < grid->getNumLabels(); j++) {
@@ -165,7 +171,7 @@ namespace ginf {
 		// Finally, get the belief of every node
 		for (int y = 1; y < grid->getHeight() - 1; y++) {
 			for (int x = 1; x < grid->getWidth() - 1; x++) {
-				result->get(x, y) = bpGetBelief(grid, msgs[0], from[0], x, y);
+				result->get(x, y) = bpGetBelief(grid, msgs[0], from[0], data[0], x, y);
 			}
 		}
 	}
