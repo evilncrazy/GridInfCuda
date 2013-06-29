@@ -13,7 +13,7 @@ namespace ginf {
 				// Check if (x, y) is in the alpha-beta partition
 				if (f->at(x, y) == alpha || f->at(x, y) == beta) {
 					T alphaCost = 0, betaCost = 0;
-					for (int d = 0; d < 4; d++) {
+					for (int d = 0; d < GINF_NUM_DIR; d++) {
 						int nx = x + dirX[d], ny = y + dirY[d];
 						if (GINF_IS_VALID_NODE(nx, ny, grid->getWidth(), grid->getHeight())) {
 							// Check if this neighbour (nx, ny) is in the alpha-beta partition
@@ -70,21 +70,33 @@ namespace ginf {
 			}
 		}
 	}
+	
+	template <typename T>
+	int graphCutCountActive(Grid<T> *grid, Matrix<int> *height, Matrix<T> *excess) {
+		int active = 0;
+		
+		for (int y = 0; y < grid->getHeight(); y++) {
+			for (int x = 0; x < grid->getWidth(); x++) {
+				// Check there's excess
+				if (excess->at(x, y) && height->at(x, y) < grid->getNumNodes() + 2) {
+					active++;
+				}
+			}
+		}
+
+		return active;
+	}
 
 	template <typename T>
-	bool graphCutGlobalRelabel(Grid<T> *grid, Matrix<int> *height, Matrix<T> *excess, Matrix<T> *residue) {
+	void graphCutGlobalRelabel(Grid<T> *grid, Matrix<int> *height, Matrix<T> *residue) {
 		// Create a queue to perform Breadth First Search
 		std::queue< std::pair<int, int> > q;
 
 		// Matrix to store the new relabeled heights
 		Matrix<int> h(2, grid->getWidth(), grid->getHeight());
 
-		bool active = false;
 		for (int y = 0; y < grid->getHeight(); y++) {
 			for (int x = 0; x < grid->getWidth(); x++) {
-				// Check there's excess
-				if (excess->at(x, y) && height->at(x, y) < grid->getNumNodes() + 2) active = true;
-
 				// Find nodes that have residue edges to the sink
 				if (residue->at(x, y, GINF_DIR_SINK)) {
 					h.get(x, y) = 1;
@@ -95,9 +107,6 @@ namespace ginf {
 			}
 		}
 
-		// If there's no active nodes, then we're done
-		if (!active) return true;
-		
 		while (!q.empty()) {
 			int x = q.front().first, y = q.front().second;
 			q.pop();
@@ -107,8 +116,8 @@ namespace ginf {
 				int nx = x + dirX[d], ny = y + dirY[d];
 				if (GINF_IS_VALID_NODE(nx, ny, grid->getWidth(), grid->getHeight())) {
 					// Take reversed edged directions and see if there's a residual edge
-					if (residue->at(nx, ny, GINF_OPP_DIR(d)) && h.get(nx, ny) == 0) {
-						h.get(nx, ny) = h.get(x, y) + 1;
+					if (residue->at(nx, ny, GINF_OPP_DIR(d)) && h.at(nx, ny) == 0) {
+						h.get(nx, ny) = h.at(x, y) + 1;
 
 						// Push this to the queue
 						q.push(std::make_pair(nx, ny));
@@ -128,8 +137,6 @@ namespace ginf {
 
 		// Copy the new heights over
 		height->copyFrom(&h);
-
-		return false; // We're not done
 	}
 	
 	template <typename T>
@@ -209,25 +216,22 @@ namespace ginf {
 		
 		bool success = true;
 		for (int t = 0; t < numIters && success; t++) {
-			printf("new iter\n");
 			success = false;
 
 			// Loop through each pair of labels
 			for (int alpha = 0; alpha < grid->getNumLabels(); alpha++) {
 				for (int beta = alpha + 1; beta < grid->getNumLabels(); beta++) {
-					printf("swapping (%d, %d)\n", alpha, beta);
-					
 					// Now, construct the graph with alpha and beta as terminal nodes
 					graphCutConstructGraph(grid, result, &height, &excess, &residue, alpha, beta);
 
 					// Run push-relabel until convergence
-					int iters = 0;
 					while (true) {
-						// Global relabeling optimization
-						if (graphCutGlobalRelabel(grid, &height, &excess, &residue)) {
-							// No more active nodes, we're done
+						// Check if we're done
+						if (graphCutCountActive(grid, &height, &excess) == 0)
 							break;
-						}
+						
+						// Global relabeling optimization
+						graphCutGlobalRelabel(grid, &height, &residue);
 
 						// Run normal push and relabel
 						for (int i = 0; i < GINF_GRAPHCUT_NUM_ITERS_PER_GLOBAL_RELABEL; i++) {
@@ -242,11 +246,8 @@ namespace ginf {
 									graphCutRelabel(grid, &height, &excess, &residue, x, y);
 								}
 							}
-							
-							iters++;
 						}
 					}
-					printf("took %d\n", iters);
 
 					// Find the labeling induced by the residue graph
 					reachable.clear();
