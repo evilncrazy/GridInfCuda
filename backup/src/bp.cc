@@ -165,18 +165,15 @@ namespace ginf {
 			}
 		}
 
+		// We won't need this anymore
+		delete[] msgBuffer;
+
 		// Finally, get the belief of every node
 		for (int y = 1; y < grid->getHeight() - 1; y++) {
 			for (int x = 1; x < grid->getWidth() - 1; x++) {
 				result->get(x, y) = bpGetBelief(grid, msgs[0], from[0], data[0], x, y);
 			}
 		}
-		
-		// We won't need these anymore
-		delete[] msgBuffer;
-		delete msgs[0];
-		delete data[0];
-		delete from[0];
 	}
 	
 	template <typename T>
