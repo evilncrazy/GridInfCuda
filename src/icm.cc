@@ -45,8 +45,8 @@ namespace ginf {
 		// For each iteration, set each node's label to one that minimizes the
 		// sum of its data cost and its smoothness costs
 		for (int t = 0; t < numIters; t++) {
-			for (int y = 0; y < grid->getHeight(); y++) {
-				for (int x = 0; x < grid->getWidth(); x++) {
+			for (int y = 1; y < grid->getHeight() - 1; y++) {
+				for (int x = 1; x < grid->getWidth() - 1; x++) {
 					// Find the minimum state
 					T minCost = grid->getLabelingCost(result, x, y, 0);
 					int minLabel = 0;
