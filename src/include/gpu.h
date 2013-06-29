@@ -75,6 +75,11 @@ namespace ginf {
 			return dMat;
 		}
 		
+		template <typename T>
+		void clearMat(T *dMat, int length) {
+			GINF_SAFE_CALL(cudaMemset(dMat, 0, sizeof(T) * length));
+		}
+		
 		// Create a copy of a grid on the device
 		template <typename T>
 		GpuGrid<T> *createGrid(Grid<T> *hostG) {
