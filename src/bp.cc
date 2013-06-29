@@ -180,7 +180,7 @@ namespace ginf {
 	}
 	
 	template <typename T>
-	void decodeBpSync(Grid<T> *grid, int numIters, Matrix<int> *result) {
+	void decodeBp(Grid<T> *grid, int numIters, Matrix<int> *result) {
 		// Synchronous loopy belief propagation is equivalent to running
 		// hierarchical belief propagation for one level
 		decodeHbp(grid, 1, numIters, result);
@@ -190,7 +190,7 @@ namespace ginf {
 	template void decodeHbp<float>(Grid<float>*, int, int, Matrix<int>*);
 	template void decodeHbp<int>(Grid<int>*, int, int, Matrix<int>*);
 
-	template void decodeBpSync<float>(Grid<float>*, int, Matrix<int>*);
-	template void decodeBpSync<int>(Grid<int>*, int, Matrix<int>*);
+	template void decodeBp<float>(Grid<float>*, int, Matrix<int>*);
+	template void decodeBp<int>(Grid<int>*, int, Matrix<int>*);
 }
 

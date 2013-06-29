@@ -5,12 +5,13 @@
 #include "gpu.h"
 
 // CUDA block size for belief propagation
-#define GINF_BP_BLOCK_SIZE 16
+#define GINF_BP_BLOCK_WIDTH 32
+#define GINF_BP_BLOCK_HEIGHT 4
 
 namespace ginf {
 	// Decode using synchronous loopy belief propagation
 	template <typename T>
-	void decodeBpSync(Grid<T> *grid, int numIters, Matrix<int> *result);
+	void decodeBp(Grid<T> *grid, int numIters, Matrix<int> *result);
 
 	// Decode using synchronous loopy belief propagation on GPU
 	template <typename T>
