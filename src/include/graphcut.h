@@ -6,7 +6,9 @@
 
 // Number of iterations of push relabel before a global relabeling operation
 #define GINF_GRAPHCUT_NUM_ITERS_PER_GLOBAL_RELABEL 10
-#define GINF_GRAPHCUT_BLOCK_SIZE 16
+#define GINF_GRAPHCUT_BLOCK_WIDTH 32
+#define GINF_GRAPHCUT_BLOCK_HEIGHT 8
+#define GINF_GRAPHCUT_NUM_THREADS_PER_BLOCK (GINF_GRAPHCUT_BLOCK_WIDTH * GINF_GRAPHCUT_BLOCK_HEIGHT)
 
 namespace ginf {
 	enum TerminalDirections {
@@ -30,9 +32,8 @@ namespace ginf {
 	void graphCutLabelFromFlow(Matrix<int> *f, Matrix<int> *reachable, int alpha, int beta);
 
 	// Relabel the heights of each node with its shortest distance to the sink
-	// Returns true if no more nodes are active
 	template <typename T>
-	bool graphCutGlobalRelabel(Grid<T> *grid, Matrix<int> *height, Matrix<T> *excess, Matrix<T> *residue);
+	void graphCutGlobalRelabel(Grid<T> *grid, Matrix<int> *height, Matrix<T> *residue);
 }
 
 #endif
